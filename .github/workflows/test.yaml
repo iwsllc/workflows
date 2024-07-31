@@ -41,7 +41,7 @@ on:
         required: false
 
 jobs:
-  run_tests:
+  testing:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
