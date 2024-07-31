@@ -1,0 +1,90 @@
+name: Version Worfklow
+
+on:
+  workflow_call:
+    inputs:
+      git_ref_name:
+        description: 'The branch or tag name to publish'
+        required: false
+        default: 'main'
+        type: string
+      node_version:
+        description: 'The Node.js version to use'
+        required: false
+        default: 22
+        type: string
+      node_registry_url:
+        description: 'The Node.js registry URL'
+        required: false
+        type: string
+      node_scope:
+        description: 'The Node.js scope'
+        required: false
+        type: string
+      node_cache:
+        description: 'The Node.js cache argument'
+        required: false
+        default: 'npm'
+        type: string
+      version_command:
+        description: 'Version bump command to run; defaults to patch version to all workspaces including root workspace.'
+        required: false
+        default: npm version patch --no-git-tag-version --include-workspace-root -ws
+        type: string
+      version_workspace:
+        description: 'Workspace path to read package.json version for commit message.'
+        required: false
+        default: .
+        type: string
+      tag_include_name:
+        description: 'Include package name in the version tag?'
+        required: false
+        default: false
+        type: boolean
+      tag_version_only_prefix:
+        description: 'Use a prefix like `v` for the version tag when package name excluded?'
+        required: false
+        default: 'v'
+        type: string
+    secrets:
+      NODE_AUTH_TOKEN:
+        required: false
+
+
+jobs:
+  bump_version:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.git_ref_name }}
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node_version }}
+        cache: ${{ inputs.node_cache }}
+        registry-url: ${{ inputs.node_registry_url }}
+        scope: ${{ inputs.node_scope }}
+    - name: "Pull latest changes"
+      run: git pull origin ${{ inputs.git_ref_name }}
+    - name: 'Bump version'
+      run: |
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+        ${{ inputs.version_command }} --no-git-tag-version && git add .
+      env:
+        # when npm version runs, it installs and requires registry access.
+        NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+    - name: 'Read new package version'
+      uses: iwsllc/read-package-version@v1
+      with: 
+        workspace: ${{ inputs.version_workspace }}
+    - name: 'Tag version'
+      run: |
+        git commit -m "$PACKAGE version bump to $VER"
+        git tag -am "$PACKAGE $VER" "$TAG_VALUE"
+        git push
+        git push --tags
+      env:
+        TAG_VALUE: ${{ inputs.tag_include_name && format('{0}@{1}', env.PACKAGE, env.VER) || format('{0}{1}',inputs.tag_version_only_prefix, env.VER) }}
+        NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
