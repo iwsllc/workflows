@@ -59,9 +59,14 @@ jobs:
           node-version: ${{ inputs.node_version }}
           registry-url: ${{ inputs.node_registry_url }}
           scope: ${{ inputs.node_scope }}
-      - run: ${{ inputs.install_command }}
-      - run: ${{ inputs.build_command }}
-      - run: ${{ inputs.publish_command }}
+      - name: Install
+        if: ${{ inputs.install_command != '' }}
+        run: ${{ inputs.install_command }}
+      - name: Build
+        if: ${{ inputs.build_command != '' }}
+        run: ${{ inputs.build_command }}
+      - name: Publish
+        run: ${{ inputs.publish_command }}
         env:
           # This is the write access auth token for the npm registry; often just simply secrets.GITHUB_TOKEN
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
