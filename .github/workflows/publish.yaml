@@ -3,45 +3,55 @@ name: Publish Package
 on:
   workflow_call:
     inputs:
-      git_ref_name:
+      ref:
         description: 'The branch or tag name to publish'
         required: true
         default: 'main'
         type: string
-      node_version:
-        description: 'The Node.js version to use'
-        required: true
-        default: '22'
-        type: string
-      node_auth_token:
-        description: 'The Node.js authentication token'
+      pnpm-version:
+        description: 'The pnpm version to use. Exclude to use the packageManager version from package.json.'
         required: false
         default: ''
         type: string
-      node_registry_url:
+      node-version:
+        description: 'The Node.js version to use. Leave empty to use the default version.'
+        required: false
+        default: ''
+        type: string
+      node-version-file:
+        description: 'Use a version file to determine Node runtime version'
+        required: false
+        default: ''
+        type: string
+      registry-url:
         description: 'The Node.js registry URL'
         required: false
         default: ''
         type: string
-      node_scope:
+      scope:
         description: 'The Node.js scope'
         required: false
         default: ''
         type: string
-      build_command:
-        description: 'Build command to run'
+      cache:
+        description: 'The Node.js cache argument'
         required: false
-        default: 'npm run build --if-present'
+        default: ''
         type: string
-      install_command:
-        description: 'Dependency install command to run'
+      install-command:
+        description: Install command to run. Blank will skip install.
         required: false
-        default: 'npm ci'
+        default: ''
         type: string
-      publish_command:
+      build-command:
+        description: 'Build command to run. Blank will skip build.'
+        required: false
+        default: ''
+        type: string
+      publish-command:
         description: 'Publish command to run'
         required: false
-        default: 'npm publish'
+        default: ''
         type: string
     secrets:
       NODE_AUTH_TOKEN:
@@ -53,20 +63,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.git_ref_name }}
+          ref: ${{ inputs.ref }}
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ inputs.pnpm-version }}
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ inputs.node_version }}
-          registry-url: ${{ inputs.node_registry_url }}
-          scope: ${{ inputs.node_scope }}
+          node-version: ${{ inputs.node-version }}
+          node-version-file: ${{ inputs.node-version-file }}
+          registry-url: ${{ inputs.registry-url }}
+          scope: ${{ inputs.scope }}
+          cache: ${{ inputs.cache }}
       - name: Install
-        if: ${{ inputs.install_command != '' }}
-        run: ${{ inputs.install_command }}
+        if: ${{ inputs.install-command != '' }}
+        run: ${{ inputs.install-command }}
       - name: Build
-        if: ${{ inputs.build_command != '' }}
-        run: ${{ inputs.build_command }}
+        if: ${{ inputs.build-command != '' }}
+        run: ${{ inputs.build-command }}
       - name: Publish
-        run: ${{ inputs.publish_command }}
+        run: ${{ inputs.publish-command }}
         env:
           # This is the write access auth token for the npm registry; often just simply secrets.GITHUB_TOKEN
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}

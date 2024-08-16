@@ -3,30 +3,42 @@ name: Version Worfklow
 on:
   workflow_call:
     inputs:
-      git_ref_name:
+      ref:
         description: 'The branch or tag name to publish'
         required: false
         default: 'main'
         type: string
-      node_version:
-        description: 'The Node.js version to use'
+      pnpm-version:
+        description: 'The pnpm version to use. Exclude to use the packageManager version from package.json.'
         required: false
-        default: 22
+        default: ''
         type: string
-      node_registry_url:
+      node-version:
+        description: 'The Node.js version to use. Leave empty to use the default version.'
+        required: false
+        default: ''
+        type: string
+      node-version-file:
+        description: 'Use a version file to determine Node runtime version'
+        required: false
+        default: ''
+        type: string
+      registry-url:
         description: 'The Node.js registry URL'
         required: false
         type: string
-      node_scope:
+        default: ''
+      scope:
         description: 'The Node.js scope'
         required: false
         type: string
-      node_cache:
+        default: ''
+      cache:
         description: 'The Node.js cache argument'
         required: false
-        default: 'npm'
+        default: ''
         type: string
-      version_command:
+      version-command:
         description: 'Version bump command to run; defaults to patch version to all workspaces including root workspace.'
         required: false
         default: npm version patch --no-git-tag-version --include-workspace-root -ws
@@ -50,38 +62,45 @@ on:
       NODE_AUTH_TOKEN:
         required: false
 
-
 jobs:
   bump_version:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
       with:
-        ref: ${{ inputs.git_ref_name }}
+        ref: ${{ inputs.ref }}
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: ${{ inputs.pnpm-version }}
     - name: Use Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: ${{ inputs.node_version }}
-        cache: ${{ inputs.node_cache }}
-        registry-url: ${{ inputs.node_registry_url }}
-        scope: ${{ inputs.node_scope }}
+        node-version: ${{ inputs.node-version }}
+        node-version-file: ${{ inputs.node-version-file }}
+        cache: ${{ inputs.cache }}
+        registry-url: ${{ inputs.registry-url }}
+        scope: ${{ inputs.scope }}
     - name: "Pull latest changes"
-      run: git pull origin ${{ inputs.git_ref_name }}
+      run: git pull origin ${{ inputs.ref }}
     - name: 'Bump version'
+      # NOTE: hacky ignore error for version command is because pnpm version doesn't support its own workspaces (passes through to npm version)
       run: |
         git config user.name github-actions
         git config user.email github-actions@github.com
-        ${{ inputs.version_command }} --no-git-tag-version && git add .
+        ${{ inputs.version-command }} --no-git-tag-version && git add .
       env:
         # when npm version runs, it installs and requires registry access.
         NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
     - name: 'Read new package version'
+      # NOTE: this action is a custom/public js-action that reads the package.json at a given relative path
+      # and assigns its name and version to an ENV variable (used below)
       uses: iwsllc/read-package-version@v1
-      with: 
+      with:
         workspace: ${{ inputs.version_workspace }}
     - name: 'Tag version'
       run: |
-        git commit -m "$PACKAGE version bump to $VER"
+        git commit -m "feat: $PACKAGE version bump to $VER"
         git tag -am "$PACKAGE $VER" "$TAG_VALUE"
         git pull
         git push

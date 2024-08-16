@@ -3,38 +3,50 @@ name: Test Workflow
 on:
   workflow_call:
     inputs:
-      node_registry_url:
-        description: 'The Node.js registry URL'
-        required: false
-        type: string
-      node_version:
-        description: 'The Node.js version to use'
-        required: false
-        default: '22'
-        type: string
-      node_scope:
-        description: 'The Node.js scope'
-        required: false
-        type: string
-      node_cache:
-        description: 'The Node.js cache argument'
-        required: false
-        default: 'npm'
-        type: string
-      install_command:
-        description: 'Appending arguemnts to `npm ci` command to minimize workspace dependency installs. i.e. `npm ci -w packages/test -w packages/test2`'
-        required: false
-        default: 'npm ci'
-        type: string
-      build_command:
-        description: 'Build command to run.'
+      pnpm-version:
+        description: 'The pnpm version to use. Exclude to use the packageManager version from package.json.'
         required: false
         default: ''
         type: string
-      test_command:
-        description: 'Test command to run; defaults to `npm run test`'
+      node-version:
+        description: 'The Node.js version to use. Leave empty to use the default version.'
         required: false
-        default: npm run test
+        default: ''
+        type: string
+      node-version-file:
+        description: 'Use a version file to determine Node runtime version'
+        required: false
+        default: ''
+        type: string
+      registry-url:
+        description: 'The Node.js registry URL'
+        required: false
+        default: ''
+        type: string
+      scope:
+        description: 'The Node.js scope'
+        required: false
+        default: ''
+        type: string
+      cache:
+        description: 'The Node.js cache argument'
+        required: false
+        default: ''
+        type: string
+      install-command:
+        description: Install command to run. Blank will skip install.
+        required: false
+        default: ''
+        type: string
+      build-command:
+        description: 'Build command to run. Blank will skip build.'
+        required: false
+        default: ''
+        type: string
+      test-command:
+        description: Test command to run
+        required: true
+        default: ''
         type: string
     secrets:
       NODE_AUTH_TOKEN:
@@ -45,19 +57,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: ${{ inputs.pnpm-version }}
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: ${{ inputs.node_version }}
-        cache: ${{ inputs.node_cache }}
-        registry-url: ${{ inputs.node_registry_url }}
-        scope: ${{ inputs.node_scope }}
+        node-version: ${{ inputs.node-version }}
+        node-version-file: ${{ inputs.node-version-file }}
+        cache: ${{ inputs.cache }}
+        registry-url: ${{ inputs.registry-url }}
+        scope: ${{ inputs.scope }}
     - name: Install Dependencies
-      run: ${{ inputs.install_command }}
+      if: ${{ inputs.install-command != '' }}
+      run: ${{ inputs.install-command }}
       env:
         # This is the write access auth token for the npm registry; often just simply secrets.GITHUB_TOKEN
         NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
     - name: Build
-      if: ${{ inputs.build_command != '' }}
-      run: ${{ inputs.build_command }}
-    - run: ${{ inputs.test_command }}
+      if: ${{ inputs.build-command != '' }}
+      run: ${{ inputs.build-command }}
+    - name: Test
+      run: ${{ inputs.test-command }}
