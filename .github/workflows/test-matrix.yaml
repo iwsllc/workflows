@@ -1,0 +1,91 @@
+name: Test Workflow
+
+on:
+  workflow_call:
+    inputs:
+      use-pnpm:
+        description: 'Use pnpm instead of npm'
+        required: false
+        default: false
+        type: boolean
+      pnpm-version:
+        description: 'The pnpm version to use. Exclude to use the packageManager version from package.json.'
+        required: false
+        default: ''
+        type: string
+      ref:
+        description: 'The branch or tag name to test; often we exclude this to test the current commit'
+        required: false
+        default: ''
+        type: string
+      versions:
+        description: 'The Node.js version to use. Leave empty to use the default version.'
+        required: true
+        type: array
+      registry-url:
+        description: 'The Node.js registry URL'
+        required: false
+        default: ''
+        type: string
+      scope:
+        description: 'The Node.js scope'
+        required: false
+        default: ''
+        type: string
+      cache:
+        description: 'The Node.js cache argument'
+        required: false
+        default: ''
+        type: string
+      install-command:
+        description: Install command to run. Blank will skip install.
+        required: false
+        default: ''
+        type: string
+      build-command:
+        description: 'Build command to run. Blank will skip build.'
+        required: false
+        default: ''
+        type: string
+      test-command:
+        description: Test command to run
+        required: true
+        default: ''
+        type: string
+    secrets:
+      NODE_AUTH_TOKEN:
+        required: false
+
+jobs:
+  testing:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        versions: ${{ inputs.versions }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.ref }}
+    - name: Install pnpm
+      if: ${{ inputs.use-pnpm }}
+      uses: pnpm/action-setup@v4
+      with:
+        version: ${{ inputs.pnpm-version }}
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.versions }}
+        cache: ${{ inputs.cache }}
+        registry-url: ${{ inputs.registry-url }}
+        scope: ${{ inputs.scope }}
+    - name: Install Dependencies
+      if: ${{ inputs.install-command != '' }}
+      run: ${{ inputs.install-command }}
+      env:
+        # This is the write access auth token for the npm registry; often just simply secrets.GITHUB_TOKEN
+        NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+    - name: Build
+      if: ${{ inputs.build-command != '' }}
+      run: ${{ inputs.build-command }}
+    - name: Test
+      run: ${{ inputs.test-command }}
