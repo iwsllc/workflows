@@ -55,7 +55,7 @@ on:
         type: string
       publish-command:
         description: 'Publish command to run'
-        required: false
+        required: true
         default: ''
         type: string
     secrets:
