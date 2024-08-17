@@ -3,13 +3,18 @@ name: Version Worfklow
 on:
   workflow_call:
     inputs:
-      ref:
-        description: 'The branch or tag name to publish'
+      use-pnpm:
+        description: 'Use pnpm instead of npm'
         required: false
-        default: 'main'
-        type: string
+        default: false
+        type: boolean
       pnpm-version:
         description: 'The pnpm version to use. Exclude to use the packageManager version from package.json.'
+        required: false
+        default: ''
+        type: string
+      ref:
+        description: 'The branch or tag name to apply version change and tag. Leave empty to use the default version from version-command'
         required: false
         default: ''
         type: string
@@ -70,6 +75,7 @@ jobs:
       with:
         ref: ${{ inputs.ref }}
     - name: Install pnpm
+      if: ${{ inputs.use-pnpm }}
       uses: pnpm/action-setup@v4
       with:
         version: ${{ inputs.pnpm-version }}

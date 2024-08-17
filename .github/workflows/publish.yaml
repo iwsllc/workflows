@@ -3,13 +3,18 @@ name: Publish Package
 on:
   workflow_call:
     inputs:
-      ref:
-        description: 'The branch or tag name to publish'
-        required: true
-        default: 'main'
-        type: string
+      use-pnpm:
+        description: 'Use pnpm instead of npm'
+        required: false
+        default: false
+        type: boolean
       pnpm-version:
         description: 'The pnpm version to use. Exclude to use the packageManager version from package.json.'
+        required: false
+        default: ''
+        type: string
+      ref:
+        description: 'The branch or tag name to publish'
         required: false
         default: ''
         type: string
@@ -65,6 +70,7 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
       - name: Install pnpm
+        if: ${{ inputs.use-pnpm }}
         uses: pnpm/action-setup@v4
         with:
           version: ${{ inputs.pnpm-version }}
