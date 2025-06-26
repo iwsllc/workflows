@@ -1,0 +1,125 @@
+name: IWS Version Bot Worfklow
+
+on:
+  workflow_call:
+    inputs:
+      use-pnpm:
+        description: 'Use pnpm instead of npm'
+        required: false
+        default: false
+        type: boolean
+      pnpm-version:
+        description: 'The pnpm version to use. Exclude to use the packageManager version from package.json.'
+        required: false
+        default: ''
+        type: string
+      ref:
+        description: 'The branch or tag name to apply version change and tag. Leave empty to use the default version from version-command'
+        required: false
+        default: ''
+        type: string
+      node-version:
+        description: 'The Node.js version to use. Leave empty to use the default version.'
+        required: false
+        default: ''
+        type: string
+      node-version-file:
+        description: 'Use a version file to determine Node runtime version'
+        required: false
+        default: ''
+        type: string
+      registry-url:
+        description: 'The Node.js registry URL'
+        required: false
+        type: string
+        default: ''
+      scope:
+        description: 'The Node.js scope'
+        required: false
+        type: string
+        default: ''
+      cache:
+        description: 'The Node.js cache argument'
+        required: false
+        default: ''
+        type: string
+      version-command:
+        description: 'Version bump command to run; defaults to patch version to all workspaces including root workspace.'
+        required: false
+        default: npm version patch --no-git-tag-version --include-workspace-root -ws
+        type: string
+      version-workspace:
+        description: 'Workspace path to read package.json version for commit message.'
+        required: false
+        default: .
+        type: string
+      tag-includes-name:
+        description: 'Include package name in the version tag?'
+        required: false
+        default: false
+        type: boolean
+      tag-version-only-prefix:
+        description: 'Use a prefix like `v` for the version tag when package name excluded?'
+        required: false
+        default: 'v'
+        type: string
+    secrets:
+      NODE_AUTH_TOKEN:
+        required: false
+      IWS_VERSION_BOT_PK:
+        required: true
+
+jobs:
+  bump_version:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/create-github-app-token@v1
+      id: app-token
+      with:
+        app-id: ${{ vars.VERSION_BUMPER_APPID }}
+        private-key: ${{ secrets.IWS_VERSION_BOT_PK }}
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.ref }}
+        fetch-depth: 0
+        token: ${{ steps.app-token.outputs.token }}
+    - name: Install pnpm
+      if: ${{ inputs.use-pnpm }}
+      uses: pnpm/action-setup@v4
+      with:
+        version: ${{ inputs.pnpm-version }}
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        node-version-file: ${{ inputs.node-version-file }}
+        cache: ${{ inputs.cache }}
+        registry-url: ${{ inputs.registry-url }}
+        scope: ${{ inputs.scope }}
+    - name: "Pull latest changes"
+      run: git pull origin ${{ inputs.ref }}
+    - name: 'Bump version'
+      # NOTE: hacky ignore error for version command is because pnpm version doesn't support its own workspaces (passes through to npm version)
+      run: |
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+        ${{ inputs.version-command }} --no-git-tag-version && git add .
+      env:
+        # when npm version runs, it installs and requires registry access.
+        NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+    - name: 'Read new package version'
+      # NOTE: this action is a custom/public js-action that reads the package.json at a given relative path
+      # and assigns its name and version to an ENV variable (used below)
+      uses: iwsllc/read-package-version@v1
+      with:
+        workspace: ${{ inputs.version-workspace }}
+    - name: 'Tag version'
+      run: |
+        git commit -m "feat: $PACKAGE version bump to $VER"
+        git tag -am "$PACKAGE $VER" "$TAG_VALUE"
+        git pull
+        git push
+        git push --tags
+      env:
+        TAG_VALUE: ${{ inputs.tag-includes-name && format('{0}@{1}', env.PACKAGE, env.VER) || format('{0}{1}',inputs.tag-version-only-prefix, env.VER) }}
+        NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
