@@ -106,7 +106,7 @@ jobs:
         workspace: ${{ inputs.version-workspace }}
     - name: 'Tag version'
       run: |
-        git commit -m "feat: $PACKAGE version bump to $VER"
+        git commit -m "feat: $PACKAGE version bump to $VER [skip ci]"
         git tag -am "$PACKAGE $VER" "$TAG_VALUE"
         git pull
         git push
