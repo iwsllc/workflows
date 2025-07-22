@@ -21,7 +21,7 @@ on:
       versions:
         description: 'The Node.js version to use. Leave empty to use the default version.'
         required: true
-        type: array
+        type: string
       registry-url:
         description: 'The Node.js registry URL'
         required: false
