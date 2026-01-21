@@ -3,6 +3,11 @@ name: Publish Package
 on:
   workflow_call:
     inputs:
+      skip-node-auth:
+        description: 'Skip Node.js authentication (Use Trusted Publishers)'
+        required: false
+        default: false
+        type: boolean
       use-pnpm:
         description: 'Use pnpm instead of npm'
         required: false
@@ -94,4 +99,5 @@ jobs:
         run: ${{ inputs.publish-command }}
         env:
           # This is the write access auth token for the npm registry; often just simply secrets.GITHUB_TOKEN
+          if: ${{ inputs.skip-node-auth == false }}
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
