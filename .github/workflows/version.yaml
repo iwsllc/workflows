@@ -71,12 +71,12 @@ jobs:
   bump_version:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         ref: ${{ inputs.ref }}
     - name: Install pnpm
       if: ${{ inputs.use-pnpm }}
-      uses: pnpm/action-setup@v4
+      uses: pnpm/action-setup@v6
       with:
         version: ${{ inputs.pnpm-version }}
     - name: Use Node.js

@@ -78,14 +78,14 @@ jobs:
       with:
         app-id: ${{ vars.VERSION_BUMPER_APPID }}
         private-key: ${{ secrets.IWS_VERSION_BOT_PK }}
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         ref: ${{ inputs.ref }}
         fetch-depth: 0
         token: ${{ steps.app-token.outputs.token }}
     - name: Install pnpm
       if: ${{ inputs.use-pnpm }}
-      uses: pnpm/action-setup@v4
+      uses: pnpm/action-setup@v6
       with:
         version: ${{ inputs.pnpm-version }}
     - name: Use Node.js
