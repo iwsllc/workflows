@@ -94,7 +94,7 @@ jobs:
       run: |
         git config user.name github-actions
         git config user.email github-actions@github.com
-        ${{ inputs.version-command }} --no-git-tag-version && git add .
+        ${{ inputs.version-command }} --no-git-tag-version || true && git add .
       env:
         # when npm version runs, it installs and requires registry access.
         NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
