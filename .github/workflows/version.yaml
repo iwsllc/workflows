@@ -101,7 +101,7 @@ jobs:
     - name: 'Read new package version'
       # NOTE: this action is a custom/public js-action that reads the package.json at a given relative path
       # and assigns its name and version to an ENV variable (used below)
-      uses: iwsllc/read-package-version@v1
+      uses: iwsllc/read-package-version@v2
       with:
         workspace: ${{ inputs.version-workspace }}
     - name: 'Tag version'
