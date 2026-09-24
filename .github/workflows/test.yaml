@@ -53,6 +53,16 @@ on:
         required: false
         default: ''
         type: string
+      lint-command:
+        description: 'Lint command to run. Blank will skip lint.'
+        required: false
+        default: ''
+        type: string
+      typecheck-command:
+        description: 'Typecheck command to run. Blank will skip typecheck.'
+        required: false
+        default: ''
+        type: string
       test-command:
         description: Test command to run
         required: true
@@ -95,5 +105,11 @@ jobs:
     - name: Build
       if: ${{ inputs.build-command != '' }}
       run: ${{ inputs.build-command }}
+    - name: Lint
+      if: ${{ inputs.lint-command != '' }}
+      run: ${{ inputs.lint-command }}
+    - name: Typecheck
+      if: ${{ inputs.typecheck-command != '' }}
+      run: ${{ inputs.typecheck-command }}
     - name: Test
       run: ${{ inputs.test-command }}

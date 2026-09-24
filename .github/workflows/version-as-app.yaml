@@ -68,10 +68,20 @@ on:
         required: false
       IWS_VERSION_BOT_PK:
         required: true
+    outputs:
+      version:
+        description: 'The new version, e.g. 1.0.3'
+        value: ${{ jobs.bump_version.outputs.version }}
+      tag:
+        description: 'The tag that was pushed, e.g. v1.0.3 or @scope/pkg@1.0.3'
+        value: ${{ jobs.bump_version.outputs.tag }}
 
 jobs:
   bump_version:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.tag.outputs.version }}
+      tag: ${{ steps.tag.outputs.tag }}
     steps:
     - uses: actions/create-github-app-token@v3
       id: app-token
@@ -101,7 +111,7 @@ jobs:
         registry-url: ${{ inputs.registry-url }}
         scope: ${{ inputs.scope }}
     - name: "Pull latest changes"
-      run: git pull origin ${{ inputs.ref }}
+      run: git pull --rebase origin ${{ inputs.ref }}
     - name: 'Bump version'
       # NOTE: hacky ignore error for version command is because pnpm version doesn't support its own workspaces (passes through to npm version)
       run: |
@@ -118,12 +128,18 @@ jobs:
       with:
         workspace: ${{ inputs.version-workspace }}
     - name: 'Tag version'
+      id: tag
+      # Rebase BEFORE tagging: a plain pull makes a merge commit if the branch moved during the run
+      # (rejected where linear history is required), and rebasing after tagging would leave the tag
+      # on a commit that never reaches the branch.
       run: |
         git commit -m "feat: $PACKAGE version bump to $VER [skip ci]"
+        git pull --rebase
         git tag -am "$PACKAGE $VER" "$TAG_VALUE"
-        git pull
         git push
         git push --tags
+        echo "version=$VER" >> "$GITHUB_OUTPUT"
+        echo "tag=$TAG_VALUE" >> "$GITHUB_OUTPUT"
       env:
         TAG_VALUE: ${{ inputs.tag-includes-name && format('{0}@{1}', env.PACKAGE, env.VER) || format('{0}{1}',inputs.tag-version-only-prefix, env.VER) }}
         NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
