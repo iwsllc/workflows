@@ -86,7 +86,7 @@ jobs:
     - uses: actions/create-github-app-token@v3
       id: app-token
       with:
-        app-id: ${{ vars.VERSION_BUMPER_APPID }}
+        client-id: ${{ vars.VERSION_BUMPER_APPID }}
         private-key: ${{ secrets.IWS_VERSION_BOT_PK }}
     - uses: actions/checkout@v6
       with:
